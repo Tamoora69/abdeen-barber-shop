@@ -150,12 +150,15 @@ export default function Booking() {
                   <p>Time: {formData.time}</p>
                 </div>
 
-                <Link 
-                  href="/payment" 
-                  className="block w-full bg-gray-900 text-white py-3 px-4 rounded-md font-medium hover:bg-gray-800 text-center"
-                >
+                <button
+                  onClick={() => {
+                    alert('Booking confirmed! Please pay at the shop when you arrive.')
+                   window.location.href = '/'
+                 }} 
+                   className="w-full bg-gray-900 text-white py-3 px-4 rounded-md font-medium hover:bg-gray-800"
+                  >
                   Confirm Booking
-                </Link>
+                </button>
               </div>
             </div>
           )}
