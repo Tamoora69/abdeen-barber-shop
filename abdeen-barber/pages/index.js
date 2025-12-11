@@ -21,9 +21,9 @@ export default function Home() {
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">ABDEEN</h1>
             <nav className="flex space-x-6">
-              <Link href="/" className="text-gray-700 hover:text-gray-900">Home</Link>
-              <Link href="/booking" className="text-gray-700 hover:text-gray-900">Book</Link>
-              <Link href="/contact" className="text-gray-700 hover:text-gray-900">Contact</Link>
+             <Link href="/" className="text-gray-700 hover:text-gray-900">Home</Link>
+             <Link href="/booking" className="text-gray-700 hover:text-gray-900">Book</Link>
+             <Link href="/contact" className="text-gray-700 hover:text-gray-900">Contact</Link>
             </nav>
           </div>
         </div>
