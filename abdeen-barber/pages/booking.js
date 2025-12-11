@@ -52,14 +52,21 @@ export default function Booking() {
     // Get already booked times for this date
     const bookedTimes = await fetchBookedTimes(dateString)
     
-    // Generate all possible time slots (9 AM to 6 PM, 30-minute intervals)
-    const allSlots = []
-    for (let hour = 9; hour < 18; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-        allSlots.push(timeString)
-      }
-    }
+    // Generate all possible time slots (11 AM to 1 AM next day, 30-minute intervals)
+const allSlots = []
+for (let hour = 11; hour < 24; hour++) { // 11 AM to 11:30 PM
+  for (let minute = 0; minute < 60; minute += 30) {
+    const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+    allSlots.push(timeString)
+  }
+}
+// Add times for midnight to 1 AM (next day)
+for (let hour = 0; hour < 1; hour++) { // 12 AM to 1 AM
+  for (let minute = 0; minute < 60; minute += 30) {
+    const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+    allSlots.push(timeString)
+  }
+}
     
     // Filter out already booked times
     const available = allSlots.filter(slot => !bookedTimes.includes(slot))
