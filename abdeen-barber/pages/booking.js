@@ -11,11 +11,13 @@ export default function Booking() {
     date: '',
     time: '',
     name: '',
-    phone: ''
+    phone: '',
+    barber: 'any'
   })
   const [availableSlots, setAvailableSlots] = useState([])
   const [loading, setLoading] = useState(false)
   const [selectedDate, setSelectedDate] = useState(null)
+  const [isCheckingTimes, setIsCheckingTimes] = useState(false)
 
   const services = [
     { id: 'haircut', name: 'Haircut', duration: 30, price: 25 },
@@ -24,8 +26,15 @@ export default function Booking() {
     { id: 'combo', name: 'Combo', duration: 45, price: 35 }
   ]
 
+  const barbers = [
+    { id: 'any', name: 'Any Available', emoji: '👥', description: 'First available barber' },
+    { id: 'master', name: 'Master Barber', emoji: '👑', description: 'Premium styling expert' },
+    { id: 'senior', name: 'Senior Barber', emoji: '✂️', description: 'Fade & design specialist' }
+  ]
+
   // Helper function to convert 24h to AM/PM
   const formatTimeAMPM = (time24) => {
+    if (!time24) return ''
     const [hours, minutes] = time24.split(':')
     const hour = parseInt(hours)
     const ampm = hour >= 12 ? 'PM' : 'AM'
@@ -46,13 +55,49 @@ export default function Booking() {
       return []
     }
     
-    // Extract just the time portion (HH:MM)
     return data.map(apt => apt.appointment_time.substring(0, 5))
   }
+
+  // Real-time listener for new appointments
+  useEffect(() => {
+    if (!formData.date) return
+
+    const channel = supabase
+      .channel(`realtime-${formData.date}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'appointments',
+          filter: `appointment_date=eq.${formData.date}`
+        },
+        (payload) => {
+          const bookedTime = payload.new.appointment_time.substring(0, 5)
+          
+          // Remove the booked time from available slots
+          setAvailableSlots(prev => prev.filter(slot => slot !== bookedTime))
+          
+          // Show subtle notification
+          if (formData.time === bookedTime) {
+            toast.warning('The time you selected was just booked. Please choose another.', {
+              autoClose: 5000,
+              position: 'top-center'
+            })
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [formData.date, formData.time])
 
   const handleServiceSelect = (serviceId) => {
     setFormData({...formData, service: serviceId})
     setStep(2)
+    toast.success('Service selected! Choose a date.')
   }
 
   const handleDateSelect = async (date) => {
@@ -60,8 +105,8 @@ export default function Booking() {
     setSelectedDate(date)
     setFormData({...formData, date: dateString})
     
-    // Show loading toast
-    toast.info('Checking available times...', { autoClose: 1000 })
+    setIsCheckingTimes(true)
+    toast.info('Loading available times...', { autoClose: 1500 })
     
     // Get already booked times for this date
     const bookedTimes = await fetchBookedTimes(dateString)
@@ -87,16 +132,25 @@ export default function Booking() {
     const available = allSlots.filter(slot => !bookedTimes.includes(slot))
     setAvailableSlots(available)
     
-    if (available.length === 0) {
-      toast.warning('No available slots for this date')
-    }
+    setIsCheckingTimes(false)
     
-    setStep(3)
+    if (available.length === 0) {
+      toast.error('No available slots for this date. Please choose another.')
+    } else {
+      toast.success(`${available.length} time slots available!`)
+      setStep(3)
+    }
   }
 
   const handleTimeSelect = (time) => {
     setFormData({...formData, time})
+    toast.success(`Time selected: ${formatTimeAMPM(time)}`, { autoClose: 1500 })
     setStep(4)
+  }
+
+  const handleBarberSelect = (barberId) => {
+    setFormData({...formData, barber: barberId})
+    setStep(5)
   }
 
   const handleSubmit = async (e) => {
@@ -119,14 +173,16 @@ export default function Booking() {
     }
 
     setLoading(true)
-    toast.info('Processing your booking...')
+    toast.info('Securing your time slot...', { autoClose: 2000 })
 
     try {
-      // First, check if this slot is still available (prevent race condition)
+      // Double-check if slot is still available
       const bookedTimes = await fetchBookedTimes(formData.date)
       if (bookedTimes.includes(formData.time)) {
-        toast.error('Sorry, this time slot was just booked by someone else. Please choose another time.')
-        setStep(3) // Go back to time selection
+        toast.error('Sorry, this time was just booked. Please choose another.', {
+          autoClose: 5000
+        })
+        setStep(3)
         setLoading(false)
         return
       }
@@ -140,29 +196,44 @@ export default function Booking() {
           service_id: formData.service,
           appointment_date: formData.date,
           appointment_time: formData.time + ':00',
+          barber_preference: formData.barber,
           status: 'confirmed'
         }])
         .select()
 
       if (error) {
-        toast.error('Error creating appointment: ' + error.message)
+        toast.error('Error: ' + error.message)
         throw error
       }
 
-      // Show success toast
+      // Show success with confetti effect
       const serviceName = services.find(s => s.id === formData.service)?.name
-      toast.success(`✅ ${formData.name}, your ${serviceName} is booked for ${formData.date} at ${formatTimeAMPM(formData.time)}`, {
-        autoClose: 5000
-      })
+      const barberName = barbers.find(b => b.id === formData.barber)?.name
       
-      // Wait a moment then redirect
+      toast.success(
+        <div>
+          <div className="font-bold text-lg">✅ Booking Confirmed!</div>
+          <div className="mt-2">
+            <p><strong>Service:</strong> {serviceName}</p>
+            <p><strong>Date:</strong> {formData.date}</p>
+            <p><strong>Time:</strong> {formatTimeAMPM(formData.time)}</p>
+            <p><strong>Barber:</strong> {barberName}</p>
+          </div>
+        </div>,
+        {
+          autoClose: 7000,
+          position: 'top-center'
+        }
+      )
+      
+      // Wait then redirect
       setTimeout(() => {
         router.push('/')
-      }, 2000)
+      }, 3000)
       
     } catch (error) {
-      console.error('Error creating appointment:', error)
-      toast.error('Error creating appointment. Please try again.')
+      console.error('Error:', error)
+      toast.error('Booking failed. Please try again or call us.')
     } finally {
       setLoading(false)
     }
@@ -171,40 +242,70 @@ export default function Booking() {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <h1 className="text-3xl font-bold text-center text-gray-900 mb-8">
-            Book Your Appointment
-          </h1>
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 md:p-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Book Your Appointment
+            </h1>
+            <p className="text-gray-600">
+              {step === 1 && 'Choose your service'}
+              {step === 2 && 'Select a date'}
+              {step === 3 && 'Pick a time'}
+              {step === 4 && 'Choose your barber'}
+              {step === 5 && 'Your information'}
+            </p>
+          </div>
 
           {/* Progress Steps */}
-          <div className="flex justify-between mb-8">
-            {[1, 2, 3, 4].map((stepNumber) => (
-              <div key={stepNumber} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  step >= stepNumber ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500'
+          <div className="flex justify-between mb-10">
+            {[1, 2, 3, 4, 5].map((stepNumber) => (
+              <div key={stepNumber} className="flex flex-col items-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                  step >= stepNumber 
+                    ? 'bg-gray-900 text-white scale-110' 
+                    : 'bg-gray-200 text-gray-500'
                 }`}>
                   {stepNumber}
                 </div>
-                {stepNumber < 4 && (
-                  <div className={`w-16 h-1 ${step > stepNumber ? 'bg-gray-900' : 'bg-gray-200'}`} />
-                )}
+                <span className="text-xs mt-2 text-gray-600">
+                  {stepNumber === 1 && 'Service'}
+                  {stepNumber === 2 && 'Date'}
+                  {stepNumber === 3 && 'Time'}
+                  {stepNumber === 4 && 'Barber'}
+                  {stepNumber === 5 && 'Details'}
+                </span>
               </div>
             ))}
           </div>
 
           {/* Step 1: Service Selection */}
           {step === 1 && (
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Choose a Service</h2>
+            <div className="animate-fadeIn">
+              <h2 className="text-xl font-semibold mb-6">Choose Your Service</h2>
               <div className="grid gap-4">
                 {services.map(service => (
                   <div
                     key={service.id}
-                    className="border-2 border-gray-200 rounded-lg p-4 cursor-pointer hover:border-gray-400"
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                      formData.service === service.id
+                        ? 'border-gray-900 bg-gray-50 transform scale-[1.02]'
+                        : 'border-gray-200 hover:border-gray-400'
+                    }`}
                     onClick={() => handleServiceSelect(service.id)}
                   >
-                    <h3 className="font-semibold text-gray-900">{service.name}</h3>
-                    <p className="text-gray-600">${service.price} • {service.duration} min</p>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-lg">{service.name}</h3>
+                        <p className="text-gray-600">{service.duration} minutes</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">${service.price}</div>
+                        {formData.service === service.id && (
+                          <div className="text-green-600 text-sm">✓ Selected</div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -213,21 +314,39 @@ export default function Booking() {
 
           {/* Step 2: Date Selection */}
           {step === 2 && (
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Choose a Date</h2>
-              <div className="space-y-4">
+            <div className="animate-fadeIn">
+              <h2 className="text-xl font-semibold mb-6">Select Date</h2>
+              <div className="grid gap-3">
                 {[0, 1, 2, 3, 4, 5, 6].map(days => {
                   const date = new Date()
                   date.setDate(date.getDate() + days)
+                  const isWeekend = date.getDay() === 0 || date.getDay() === 6
+                  
                   return (
                     <div
                       key={days}
-                      className="border-2 border-gray-200 rounded-lg p-4 cursor-pointer hover:border-gray-400"
+                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                        formData.date === date.toISOString().split('T')[0]
+                          ? 'border-gray-900 bg-gray-50'
+                          : 'border-gray-200 hover:border-gray-400'
+                      }`}
                       onClick={() => handleDateSelect(date)}
                     >
-                      <h3 className="font-semibold text-gray-900">
-                        {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                      </h3>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-bold text-gray-900">
+                            {date.toLocaleDateString('en-US', { weekday: 'long' })}
+                          </h3>
+                          <p className="text-gray-600">
+                            {date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+                          </p>
+                        </div>
+                        {isWeekend && (
+                          <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
+                            Weekend
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -237,70 +356,147 @@ export default function Booking() {
 
           {/* Step 3: Time Selection */}
           {step === 3 && (
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Choose a Time</h2>
+            <div className="animate-fadeIn">
+              <h2 className="text-xl font-semibold mb-6">Choose Time Slot</h2>
               
               {selectedDate && (
-                <p className="text-sm text-gray-600 mb-4">
-                  Available times for {selectedDate.toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })} (11 AM - 1 AM)
-                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <p className="text-blue-800 font-medium">
+                    {selectedDate.toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      month: 'long', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </p>
+                  <p className="text-blue-600 text-sm">Hours: 11:00 AM - 1:00 AM</p>
+                </div>
               )}
               
-              <div className="grid grid-cols-3 gap-2">
-                {availableSlots.map(slot => (
-                  <button
-                    key={slot}
-                    type="button"
-                    onClick={() => handleTimeSelect(slot)}
-                    className={`py-2 px-3 rounded text-sm font-medium ${
-                      formData.time === slot
-                        ? 'bg-gray-900 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {formatTimeAMPM(slot)}
-                  </button>
-                ))}
-                
-                {availableSlots.length === 0 && (
-                  <div className="col-span-3 text-center py-8">
-                    <p className="text-gray-500 mb-2">No available slots for this date.</p>
-                    <button
-                      type="button"
-                      onClick={() => setStep(2)}
-                      className="text-gray-700 hover:text-gray-900 underline"
-                    >
-                      ← Choose another date
-                    </button>
+              {isCheckingTimes ? (
+                <div className="text-center py-10">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+                  <p className="text-gray-600 mt-4">Checking real-time availability...</p>
+                  <p className="text-gray-500 text-sm mt-2">Preventing double bookings</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                    {availableSlots.map(slot => (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => handleTimeSelect(slot)}
+                        className={`py-3 px-4 rounded-lg text-sm font-medium transition-all ${
+                          formData.time === slot
+                            ? 'bg-gray-900 text-white transform scale-105 shadow-lg'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
+                        }`}
+                      >
+                        <div className="font-bold">{formatTimeAMPM(slot)}</div>
+                        <div className="text-xs opacity-75">Available</div>
+                      </button>
+                    ))}
                   </div>
-                )}
+                  
+                  {availableSlots.length === 0 && (
+                    <div className="text-center py-8 bg-gray-50 rounded-lg">
+                      <div className="text-4xl mb-4">😕</div>
+                      <p className="text-gray-700 font-medium mb-2">No available slots</p>
+                      <p className="text-gray-600 mb-4">This date is fully booked. Try another day.</p>
+                      <button
+                        type="button"
+                        onClick={() => setStep(2)}
+                        className="text-gray-700 hover:text-gray-900 font-medium underline"
+                      >
+                        ← Choose another date
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Step 4: Barber Selection */}
+          {step === 4 && (
+            <div className="animate-fadeIn">
+              <h2 className="text-xl font-semibold mb-6">Barber Preference</h2>
+              <p className="text-gray-600 mb-6">Choose your preferred barber (optional)</p>
+              
+              <div className="grid gap-4">
+                {barbers.map(barber => (
+                  <div
+                    key={barber.id}
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                      formData.barber === barber.id
+                        ? 'border-gray-900 bg-gray-50'
+                        : 'border-gray-200 hover:border-gray-400 hover:shadow-md'
+                    }`}
+                    onClick={() => handleBarberSelect(barber.id)}
+                  >
+                    <div className="flex items-center">
+                      <div className="text-2xl mr-4">{barber.emoji}</div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-gray-900">{barber.name}</h3>
+                        <p className="text-gray-600 text-sm">{barber.description}</p>
+                      </div>
+                      {formData.barber === barber.id && (
+                        <div className="text-green-600 font-bold">✓</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Step 4: Customer Info */}
-          {step === 4 && (
-            <form onSubmit={handleSubmit}>
-              <h2 className="text-xl font-semibold mb-6">Your Information</h2>
+          {/* Step 5: Customer Information */}
+          {step === 5 && (
+            <form onSubmit={handleSubmit} className="animate-fadeIn">
+              <h2 className="text-xl font-semibold mb-6">Your Details</h2>
               
-              <div className="space-y-4">
+              {/* Appointment Summary Card */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 mb-6">
+                <h3 className="font-bold text-gray-900 mb-3">Appointment Summary</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Service:</span>
+                    <span className="font-medium">{services.find(s => s.id === formData.service)?.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Date:</span>
+                    <span className="font-medium">
+                      {selectedDate?.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Time:</span>
+                    <span className="font-medium">{formatTimeAMPM(formData.time)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Barber:</span>
+                    <span className="font-medium">{barbers.find(b => b.id === formData.barber)?.name}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Your Name *
+                    Full Name *
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
                     placeholder="Enter your full name"
                   />
-                  {!formData.name && <p className="text-red-500 text-xs mt-1">Name is required</p>}
+                  {!formData.name && (
+                    <p className="text-red-500 text-xs mt-2">Name is required</p>
+                  )}
                 </div>
                 
                 <div>
@@ -312,34 +508,36 @@ export default function Booking() {
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                     placeholder="Enter your phone number"
                   />
-                  {!formData.phone && <p className="text-red-500 text-xs mt-1">Phone number is required</p>}
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold mb-2">Appointment Summary</h3>
-                  <p><strong>Service:</strong> {services.find(s => s.id === formData.service)?.name}</p>
-                  <p><strong>Date:</strong> {formData.date}</p>
-                  <p><strong>Time:</strong> {formatTimeAMPM(formData.time)}</p>
+                  {!formData.phone && (
+                    <p className="text-red-500 text-xs mt-2">Phone number is required</p>
+                  )}
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading || !formData.name || !formData.phone}
-                  className={`w-full py-3 px-4 rounded-md font-medium ${
-                    !formData.name || !formData.phone
+                  className={`w-full py-4 px-4 rounded-lg font-bold text-lg transition-all ${
+                    !formData.name || !formData.phone || loading
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                      : 'bg-gray-900 text-white hover:bg-gray-800 hover:shadow-lg transform hover:scale-[1.02]'
                   }`}
                 >
-                  {loading ? 'Booking...' : 'Confirm Booking'}
+                  {loading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                      Securing Your Booking...
+                    </div>
+                  ) : (
+                    'Confirm & Book Now'
+                  )}
                 </button>
 
                 {(!formData.name || !formData.phone) && (
                   <p className="text-red-500 text-sm text-center">
-                    Please fill in all required fields (*)
+                    * Please fill in all required fields
                   </p>
                 )}
               </div>
