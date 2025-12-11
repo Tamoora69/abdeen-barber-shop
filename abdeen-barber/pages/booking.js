@@ -11,8 +11,7 @@ export default function Booking() {
     date: '',
     time: '',
     name: '',
-    phone: '',
-    barber: 'any'
+    phone: ''
   })
   const [availableSlots, setAvailableSlots] = useState([])
   const [loading, setLoading] = useState(false)
@@ -20,16 +19,10 @@ export default function Booking() {
   const [isCheckingTimes, setIsCheckingTimes] = useState(false)
 
   const services = [
-    { id: 'haircut', name: 'Haircut', duration: 30, price: 25 },
-    { id: 'beard', name: 'Beard Trim', duration: 20, price: 15 },
-    { id: 'shave', name: 'Shave', duration: 25, price: 20 },
-    { id: 'combo', name: 'Combo', duration: 45, price: 35 }
-  ]
-
-  const barbers = [
-    { id: 'any', name: 'Any Available', emoji: '👥', description: 'First available barber' },
-    { id: 'master', name: 'Master Barber', emoji: '👑', description: 'Premium styling expert' },
-    { id: 'senior', name: 'Senior Barber', emoji: '✂️', description: 'Fade & design specialist' }
+    { id: 'haircut', name: 'Haircut', duration: 30, price: 120 },
+    { id: 'trimming', name: 'Trimming', duration: 5, price: 20 },
+    { id: 'fullshave', name: 'Full Shave', duration: 10, price: 20 },
+    { id: 'combo', name: 'Combo', duration: 40, price: 140 }
   ]
 
   // Helper function to convert 24h to AM/PM
@@ -100,6 +93,12 @@ export default function Booking() {
     toast.success('Service selected! Choose a date.')
   }
 
+  // Function to check if date is Thursday or Friday (Weekend)
+  const isWeekend = (date) => {
+    const day = date.getDay()
+    return day === 4 || day === 5 // Thursday = 4, Friday = 5
+  }
+
   const handleDateSelect = async (date) => {
     const dateString = date.toISOString().split('T')[0]
     setSelectedDate(date)
@@ -148,11 +147,6 @@ export default function Booking() {
     setStep(4)
   }
 
-  const handleBarberSelect = (barberId) => {
-    setFormData({...formData, barber: barberId})
-    setStep(5)
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     
@@ -162,8 +156,18 @@ export default function Booking() {
       return
     }
     
+    // Validate phone number (must be 11 digits for Egypt)
     if (!formData.phone.trim()) {
       toast.error('Please enter your phone number')
+      return
+    }
+    
+    // Remove any spaces or special characters
+    const cleanedPhone = formData.phone.replace(/\D/g, '')
+    
+    // Check if phone number is valid Egyptian number (11 digits starting with 01)
+    if (cleanedPhone.length !== 11 || !cleanedPhone.startsWith('01')) {
+      toast.error('Please enter a valid Egyptian phone number (11 digits starting with 01)')
       return
     }
     
@@ -187,7 +191,7 @@ export default function Booking() {
         return
       }
 
-      // Save to database
+      // Save to database WITHOUT barber_preference column
       const { data, error } = await supabase
         .from('appointments')
         .insert([{
@@ -196,7 +200,6 @@ export default function Booking() {
           service_id: formData.service,
           appointment_date: formData.date,
           appointment_time: formData.time + ':00',
-          barber_preference: formData.barber,
           status: 'confirmed'
         }])
         .select()
@@ -206,18 +209,18 @@ export default function Booking() {
         throw error
       }
 
-      // Show success with confetti effect
+      // Show success
       const serviceName = services.find(s => s.id === formData.service)?.name
-      const barberName = barbers.find(b => b.id === formData.barber)?.name
       
       toast.success(
         <div>
           <div className="font-bold text-lg">✅ Booking Confirmed!</div>
-          <div className="mt-2">
+          <div className="mt-2 text-sm">
             <p><strong>Service:</strong> {serviceName}</p>
             <p><strong>Date:</strong> {formData.date}</p>
             <p><strong>Time:</strong> {formatTimeAMPM(formData.time)}</p>
-            <p><strong>Barber:</strong> {barberName}</p>
+            <p><strong>Phone:</strong> {formData.phone}</p>
+            <p className="mt-2 text-green-700">We'll contact you for confirmation!</p>
           </div>
         </div>,
         {
@@ -252,14 +255,13 @@ export default function Booking() {
               {step === 1 && 'Choose your service'}
               {step === 2 && 'Select a date'}
               {step === 3 && 'Pick a time'}
-              {step === 4 && 'Choose your barber'}
-              {step === 5 && 'Your information'}
+              {step === 4 && 'Your information'}
             </p>
           </div>
 
-          {/* Progress Steps */}
+          {/* Progress Steps - Now 4 steps (removed barber step) */}
           <div className="flex justify-between mb-10">
-            {[1, 2, 3, 4, 5].map((stepNumber) => (
+            {[1, 2, 3, 4].map((stepNumber) => (
               <div key={stepNumber} className="flex flex-col items-center">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                   step >= stepNumber 
@@ -272,8 +274,7 @@ export default function Booking() {
                   {stepNumber === 1 && 'Service'}
                   {stepNumber === 2 && 'Date'}
                   {stepNumber === 3 && 'Time'}
-                  {stepNumber === 4 && 'Barber'}
-                  {stepNumber === 5 && 'Details'}
+                  {stepNumber === 4 && 'Details'}
                 </span>
               </div>
             ))}
@@ -300,7 +301,7 @@ export default function Booking() {
                         <p className="text-gray-600">{service.duration} minutes</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-gray-900">${service.price}</div>
+                        <div className="text-2xl font-bold text-gray-900">{service.price} EGP</div>
                         {formData.service === service.id && (
                           <div className="text-green-600 text-sm">✓ Selected</div>
                         )}
@@ -312,7 +313,7 @@ export default function Booking() {
             </div>
           )}
 
-          {/* Step 2: Date Selection */}
+          {/* Step 2: Date Selection - Thursday & Friday marked as Weekend */}
           {step === 2 && (
             <div className="animate-fadeIn">
               <h2 className="text-xl font-semibold mb-6">Select Date</h2>
@@ -320,7 +321,9 @@ export default function Booking() {
                 {[0, 1, 2, 3, 4, 5, 6].map(days => {
                   const date = new Date()
                   date.setDate(date.getDate() + days)
-                  const isWeekend = date.getDay() === 0 || date.getDay() === 6
+                  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+                  const dayName = dayNames[date.getDay()]
+                  const isWeekendDay = dayName === 'Thursday' || dayName === 'Friday'
                   
                   return (
                     <div
@@ -335,13 +338,13 @@ export default function Booking() {
                       <div className="flex justify-between items-center">
                         <div>
                           <h3 className="font-bold text-gray-900">
-                            {date.toLocaleDateString('en-US', { weekday: 'long' })}
+                            {dayName}
                           </h3>
                           <p className="text-gray-600">
                             {date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                           </p>
                         </div>
-                        {isWeekend && (
+                        {isWeekendDay && (
                           <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
                             Weekend
                           </span>
@@ -418,41 +421,8 @@ export default function Booking() {
             </div>
           )}
 
-          {/* Step 4: Barber Selection */}
+          {/* Step 4: Customer Information */}
           {step === 4 && (
-            <div className="animate-fadeIn">
-              <h2 className="text-xl font-semibold mb-6">Barber Preference</h2>
-              <p className="text-gray-600 mb-6">Choose your preferred barber (optional)</p>
-              
-              <div className="grid gap-4">
-                {barbers.map(barber => (
-                  <div
-                    key={barber.id}
-                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      formData.barber === barber.id
-                        ? 'border-gray-900 bg-gray-50'
-                        : 'border-gray-200 hover:border-gray-400 hover:shadow-md'
-                    }`}
-                    onClick={() => handleBarberSelect(barber.id)}
-                  >
-                    <div className="flex items-center">
-                      <div className="text-2xl mr-4">{barber.emoji}</div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-gray-900">{barber.name}</h3>
-                        <p className="text-gray-600 text-sm">{barber.description}</p>
-                      </div>
-                      {formData.barber === barber.id && (
-                        <div className="text-green-600 font-bold">✓</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 5: Customer Information */}
-          {step === 5 && (
             <form onSubmit={handleSubmit} className="animate-fadeIn">
               <h2 className="text-xl font-semibold mb-6">Your Details</h2>
               
@@ -475,8 +445,8 @@ export default function Booking() {
                     <span className="font-medium">{formatTimeAMPM(formData.time)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Barber:</span>
-                    <span className="font-medium">{barbers.find(b => b.id === formData.barber)?.name}</span>
+                    <span className="text-gray-600">Price:</span>
+                    <span className="font-medium">{services.find(s => s.id === formData.service)?.price} EGP</span>
                   </div>
                 </div>
               </div>
@@ -501,7 +471,8 @@ export default function Booking() {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
+                    Egyptian Phone Number *
+                    <span className="text-gray-500 text-xs ml-2">(11 digits starting with 01)</span>
                   </label>
                   <input
                     type="tel"
@@ -509,18 +480,28 @@ export default function Booking() {
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-                    placeholder="Enter your phone number"
+                    placeholder="01X XXXXXXX"
+                    pattern="01[0-9]{9}"
+                    maxLength="11"
                   />
-                  {!formData.phone && (
-                    <p className="text-red-500 text-xs mt-2">Phone number is required</p>
+                  {formData.phone && (
+                    <p className={`text-xs mt-2 ${
+                      formData.phone.replace(/\D/g, '').length === 11 && formData.phone.startsWith('01') 
+                        ? 'text-green-600' 
+                        : 'text-red-500'
+                    }`}>
+                      {formData.phone.replace(/\D/g, '').length === 11 && formData.phone.startsWith('01') 
+                        ? '✓ Valid Egyptian number' 
+                        : 'Please enter 11 digits starting with 01'}
+                    </p>
                   )}
                 </div>
 
                 <button
                   type="submit"
-                  disabled={loading || !formData.name || !formData.phone}
+                  disabled={loading || !formData.name || !formData.phone || formData.phone.replace(/\D/g, '').length !== 11}
                   className={`w-full py-4 px-4 rounded-lg font-bold text-lg transition-all ${
-                    !formData.name || !formData.phone || loading
+                    !formData.name || !formData.phone || formData.phone.replace(/\D/g, '').length !== 11 || loading
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-gray-900 text-white hover:bg-gray-800 hover:shadow-lg transform hover:scale-[1.02]'
                   }`}
