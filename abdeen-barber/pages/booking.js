@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
+import { toast } from 'react-toastify'
 
 export default function Booking() {
   const router = useRouter()
