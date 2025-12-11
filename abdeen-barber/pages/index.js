@@ -27,29 +27,29 @@ export default function Home() {
   const services = [
     { 
       name: "Haircut", 
-      price: 25, 
+      price: 120, 
       duration: 30, 
       description: "Professional haircut with modern styling",
       icon: "💇"
     },
     { 
-      name: "Beard Trim", 
-      price: 15, 
-      duration: 20, 
-      description: "Precise beard shaping and trimming",
+      name: "Trimming", 
+      price: 20, 
+      duration: 5, 
+      description: "Hair and beard trimming",
       icon: "🧔"
     },
     { 
-      name: "Shave", 
+      name: "Full Shave", 
       price: 20, 
-      duration: 25, 
+      duration: 10, 
       description: "Traditional straight razor shave",
       icon: "🪒"
     },
     { 
       name: "Combo", 
-      price: 35, 
-      duration: 45, 
+      price: 140, 
+      duration: 40, 
       description: "Haircut + Beard complete grooming",
       icon: "✨"
     }
@@ -58,8 +58,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Head>
-        <title>Abdeen Barber Shop - Premium Grooming in Shebeen El-Kom</title>
-        <meta name="description" content="Professional barber services at Abdeen Barber Shop in Shebeen El-Kom. Haircut, beard trim, shave, and grooming services." />
+        <title>Abdeen Barber Shop - Premium Grooming in Ismailia</title>
+        <meta name="description" content="Professional barber services at Abdeen Barber Shop in Ismailia. Haircut, beard trim, shave, and grooming services." />
       </Head>
 
       {/* Header */}
@@ -113,7 +113,7 @@ export default function Home() {
           </div>
           
           <p className="text-xl md:text-2xl text-gray-300 mt-8 mb-10 max-w-2xl mx-auto">
-            Premium grooming at <span className="font-bold text-white">Shebeen El-Kom</span> • Next to Ford's Garage
+            Premium grooming on <span className="font-bold text-white">Shebeen El-Kom Street</span> in <span className="font-bold text-white">Ismailia</span>
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -216,10 +216,10 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl font-bold mb-6">
-                Find Us in Shebeen El-Kom
+                Find Us in Ismailia
               </h2>
               <p className="text-xl text-gray-300 mb-8">
-                Conveniently located next to Ford's Garage
+                Located on Shebeen El-Kom Street
               </p>
               
               <div className="space-y-4">
@@ -228,8 +228,8 @@ export default function Home() {
                   <div>
                     <p className="font-medium">Location</p>
                     <p className="text-gray-300">
-                      Shebeen El-Kom<br />
-                      Next to Ford's Garage
+                      Shebeen El-Kom Street<br />
+                      Ismailia, Egypt
                     </p>
                     <a 
                       href="https://maps.app.goo.gl/cHBvaa89G91m82G5A"
@@ -276,19 +276,20 @@ export default function Home() {
               <div className="aspect-w-16 aspect-h-9 bg-gray-700 rounded-lg mb-4 flex items-center justify-center">
                 <div className="text-center">
                   <span className="text-4xl mb-4 block">🗺️</span>
-                  <p className="text-gray-300">Google Maps Location</p>
+                  <p className="text-gray-300">Ismailia Location</p>
+                  <p className="text-gray-400 text-sm mt-2">Shebeen El-Kom Street</p>
                   <a 
                     href="https://maps.app.goo.gl/cHBvaa89G91m82G5A"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium"
                   >
-                    Open in Maps
+                    Get Directions
                   </a>
                 </div>
               </div>
               <p className="text-gray-400 text-sm text-center">
-                Click above to get directions to our shop
+                Conveniently located in central Ismailia
               </p>
             </div>
           </div>
@@ -302,24 +303,24 @@ export default function Home() {
             What Our Clients Say
           </h2>
           <p className="text-gray-600 text-center mb-16 max-w-2xl mx-auto">
-            Don't just take our word for it - hear from our satisfied customers
+            Don't just take our word for it - hear from our satisfied customers in Ismailia
           </p>
           
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
                 name: "Mohammed A.",
-                text: "Best barber in Shebeen El-Kom! Always professional and the cuts are perfect every time.",
+                text: "Best barber in Ismailia! Always professional and the cuts are perfect every time.",
                 rating: 5
               },
               {
                 name: "Ahmed S.",
-                text: "Great location next to Ford's Garage. Skilled barbers who pay attention to detail.",
+                text: "Excellent service on Shebeen El-Kom Street. Skilled barbers who pay attention to detail.",
                 rating: 5
               },
               {
                 name: "Omar K.",
-                text: "Clean shop, friendly service, and excellent results. My go-to barber shop now.",
+                text: "Clean shop in Ismailia, friendly service, and excellent results. My go-to barber shop now.",
                 rating: 5
               }
             ].map((testimonial, index) => (
@@ -336,7 +337,7 @@ export default function Home() {
                   </div>
                   <div>
                     <div className="font-bold text-gray-900">{testimonial.name}</div>
-                    <div className="text-sm text-gray-500">Regular Customer</div>
+                    <div className="text-sm text-gray-500">Ismailia Customer</div>
                   </div>
                 </div>
               </div>
@@ -352,7 +353,7 @@ export default function Home() {
             Ready for Your Perfect Grooming Experience?
           </h2>
           <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
-            Book your appointment online in seconds or visit us at our Shebeen El-Kom location
+            Book your appointment online or visit us at our Ismailia location on Shebeen El-Kom Street
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -369,7 +370,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-lg hover:bg-white/10 transform hover:scale-105 transition-all text-lg"
             >
-              Get Directions
+              Get Directions to Ismailia
             </a>
           </div>
           
@@ -393,7 +394,7 @@ export default function Home() {
             <div>
               <h3 className="text-2xl font-bold mb-4">ABDEEN</h3>
               <p className="text-gray-400">
-                Premium barber services in Shebeen El-Kom
+                Premium barber services in Ismailia
               </p>
             </div>
             
@@ -418,15 +419,15 @@ export default function Home() {
             <div>
               <h4 className="font-bold mb-4">Contact Info</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>📍 Shebeen El-Kom</li>
-                <li>Next to Ford's Garage</li>
+                <li>📍 Shebeen El-Kom Street</li>
+                <li>Ismailia, Egypt</li>
                 <li>📞 +20 120 631 0046</li>
               </ul>
             </div>
           </div>
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
-            © {new Date().getFullYear()} Abdeen Barber Shop. All rights reserved.
+            © {new Date().getFullYear()} Abdeen Barber Shop, Ismailia. All rights reserved.
           </div>
         </div>
       </footer>
