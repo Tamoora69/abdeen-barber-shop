@@ -20,7 +20,7 @@ export default function Admin() {
       .from('appointments')
       .select('*')
       .order('appointment_date', { ascending: false })
-    
+
     setAppointments(data || [])
   }
 
@@ -33,8 +33,9 @@ export default function Admin() {
     }
   }
 
-  const deleteAppointment = async (id) => {
-    if (!confirm("Are you sure you want to delete this appointment?")) return;
+  // Delete appointment function
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this appointment?')) return
 
     const { error } = await supabase
       .from('appointments')
@@ -42,11 +43,11 @@ export default function Admin() {
       .eq('id', id)
 
     if (error) {
-      alert("Error deleting appointment: " + error.message)
+      alert('Failed to delete appointment')
+      console.error(error)
     } else {
-      alert("Appointment deleted successfully!")
-      // Remove the deleted appointment from state
-      setAppointments(prev => prev.filter(apt => apt.id !== id))
+      alert('Appointment deleted successfully')
+      fetchAppointments()
     }
   }
 
@@ -79,7 +80,7 @@ export default function Admin() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Appointments</h1>
-        
+
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -112,8 +113,8 @@ export default function Admin() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
-                      onClick={() => deleteAppointment(apt.id)}
-                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                      onClick={() => handleDelete(apt.id)}
+                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                     >
                       Delete
                     </button>

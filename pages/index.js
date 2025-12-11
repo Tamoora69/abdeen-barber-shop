@@ -35,28 +35,28 @@ export default function Home() {
     { 
       name: "تدريج", 
       price: 100, 
-      duration: 5, 
+      duration: 15, 
       description: "Hair trimming",
       icon: "🧔"
     },
     { 
       name: "تدريج + دقن", 
       price: 120, 
-      duration: 10, 
+      duration: 20, 
       description: "Traditional straight razor shave",
       icon: "✨"
     },
     { 
       name: "دقن", 
       price: 50, 
-      duration: 40, 
+      duration: 10, 
       description: " Beard complete grooming",
       icon: "✨"
     },
     { 
       name: "استشوار", 
       price: 50, 
-      duration: 40, 
+      duration: 15, 
       description: "modern styling",
       icon: "✨"
     },
