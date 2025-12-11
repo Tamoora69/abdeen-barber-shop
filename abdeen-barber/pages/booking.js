@@ -24,6 +24,15 @@ export default function Booking() {
     { id: 'combo', name: 'Combo', duration: 45, price: 35 }
   ]
 
+  // Helper function to convert 24h to AM/PM
+  const formatTimeAMPM = (time24) => {
+    const [hours, minutes] = time24.split(':')
+    const hour = parseInt(hours)
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const hour12 = hour % 12 || 12
+    return `${hour12}:${minutes} ${ampm}`
+  }
+
   // Fetch already booked times for a date
   const fetchBookedTimes = async (dateString) => {
     const { data, error } = await supabase
@@ -33,6 +42,7 @@ export default function Booking() {
 
     if (error) {
       console.error('Error fetching appointments:', error)
+      toast.error('Error checking available times')
       return []
     }
     
@@ -50,28 +60,37 @@ export default function Booking() {
     setSelectedDate(date)
     setFormData({...formData, date: dateString})
     
+    // Show loading toast
+    toast.info('Checking available times...', { autoClose: 1000 })
+    
     // Get already booked times for this date
     const bookedTimes = await fetchBookedTimes(dateString)
     
     // Generate all possible time slots (11 AM to 1 AM next day, 30-minute intervals)
-const allSlots = []
-for (let hour = 11; hour < 24; hour++) { // 11 AM to 11:30 PM
-  for (let minute = 0; minute < 60; minute += 30) {
-    const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-    allSlots.push(timeString)
-  }
-}
-// Add times for midnight to 1 AM (next day)
-for (let hour = 0; hour < 1; hour++) { // 12 AM to 1 AM
-  for (let minute = 0; minute < 60; minute += 30) {
-    const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-    allSlots.push(timeString)
-  }
-}
+    const allSlots = []
+    // 11 AM to 11:30 PM
+    for (let hour = 11; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+        allSlots.push(timeString)
+      }
+    }
+    // 12 AM to 1 AM (next day)
+    for (let hour = 0; hour < 1; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+        allSlots.push(timeString)
+      }
+    }
     
     // Filter out already booked times
     const available = allSlots.filter(slot => !bookedTimes.includes(slot))
     setAvailableSlots(available)
+    
+    if (available.length === 0) {
+      toast.warning('No available slots for this date')
+    }
+    
     setStep(3)
   }
 
@@ -85,27 +104,28 @@ for (let hour = 0; hour < 1; hour++) { // 12 AM to 1 AM
     
     // Validate required fields
     if (!formData.name.trim()) {
-      alert('Please enter your name')
+      toast.error('Please enter your name')
       return
     }
     
     if (!formData.phone.trim()) {
-      alert('Please enter your phone number')
+      toast.error('Please enter your phone number')
       return
     }
     
     if (!formData.service || !formData.date || !formData.time) {
-      alert('Please complete all booking steps')
+      toast.error('Please complete all booking steps')
       return
     }
 
     setLoading(true)
+    toast.info('Processing your booking...')
 
     try {
       // First, check if this slot is still available (prevent race condition)
       const bookedTimes = await fetchBookedTimes(formData.date)
       if (bookedTimes.includes(formData.time)) {
-        alert('Sorry, this time slot was just booked by someone else. Please choose another time.')
+        toast.error('Sorry, this time slot was just booked by someone else. Please choose another time.')
         setStep(3) // Go back to time selection
         setLoading(false)
         return
@@ -119,20 +139,30 @@ for (let hour = 0; hour < 1; hour++) { // 12 AM to 1 AM
           customer_phone: formData.phone,
           service_id: formData.service,
           appointment_date: formData.date,
-          appointment_time: formData.time + ':00', // Add seconds for database
+          appointment_time: formData.time + ':00',
           status: 'confirmed'
         }])
         .select()
 
-      if (error) throw error
+      if (error) {
+        toast.error('Error creating appointment: ' + error.message)
+        throw error
+      }
 
-      // Show confirmation and redirect
-      alert(`✅ Appointment confirmed!\n\n${formData.name}, your ${services.find(s => s.id === formData.service)?.name} is booked for ${formData.date} at ${formData.time}`)
-      router.push('/')
+      // Show success toast
+      const serviceName = services.find(s => s.id === formData.service)?.name
+      toast.success(`✅ ${formData.name}, your ${serviceName} is booked for ${formData.date} at ${formatTimeAMPM(formData.time)}`, {
+        autoClose: 5000
+      })
+      
+      // Wait a moment then redirect
+      setTimeout(() => {
+        router.push('/')
+      }, 2000)
       
     } catch (error) {
       console.error('Error creating appointment:', error)
-      alert('Error creating appointment. Please try again.')
+      toast.error('Error creating appointment. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -216,7 +246,7 @@ for (let hour = 0; hour < 1; hour++) { // 12 AM to 1 AM
                     weekday: 'long', 
                     month: 'long', 
                     day: 'numeric' 
-                  })}
+                  })} (11 AM - 1 AM)
                 </p>
               )}
               
@@ -232,7 +262,7 @@ for (let hour = 0; hour < 1; hour++) { // 12 AM to 1 AM
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {slot}
+                    {formatTimeAMPM(slot)}
                   </button>
                 ))}
                 
@@ -292,7 +322,7 @@ for (let hour = 0; hour < 1; hour++) { // 12 AM to 1 AM
                   <h3 className="font-semibold mb-2">Appointment Summary</h3>
                   <p><strong>Service:</strong> {services.find(s => s.id === formData.service)?.name}</p>
                   <p><strong>Date:</strong> {formData.date}</p>
-                  <p><strong>Time:</strong> {formData.time}</p>
+                  <p><strong>Time:</strong> {formatTimeAMPM(formData.time)}</p>
                 </div>
 
                 <button

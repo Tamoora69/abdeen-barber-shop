@@ -1,10 +1,4 @@
 import '../styles/globals.css'
-
-export default function MyApp({ Component, pageProps }) {
-  return <Component {...pageProps} />
-}
-
-import '../styles/globals.css'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -12,7 +6,14 @@ export default function MyApp({ Component, pageProps }) {
   return (
     <>
       <Component {...pageProps} />
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        closeOnClick
+        pauseOnHover
+        theme="light"
+      />
     </>
   )
 }
