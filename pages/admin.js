@@ -33,6 +33,23 @@ export default function Admin() {
     }
   }
 
+  const deleteAppointment = async (id) => {
+    if (!confirm("Are you sure you want to delete this appointment?")) return;
+
+    const { error } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      alert("Error deleting appointment: " + error.message)
+    } else {
+      alert("Appointment deleted successfully!")
+      // Remove the deleted appointment from state
+      setAppointments(prev => prev.filter(apt => apt.id !== id))
+    }
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -73,6 +90,7 @@ export default function Admin() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -91,6 +109,14 @@ export default function Admin() {
                     }`}>
                       {apt.status}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() => deleteAppointment(apt.id)}
+                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
