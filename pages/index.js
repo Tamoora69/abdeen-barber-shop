@@ -40,16 +40,16 @@ export default function Home() {
       icon: "🧔"
     },
     { 
-      name: "تدريج + دقن", 
-      price: 120, 
-      duration: 20, 
+      name: "دقن", 
+      price: 5, 
+      duration: 10, 
       description: "Traditional straight razor shave",
       icon: "✨"
     },
     { 
-      name: "دقن", 
-      price: 50, 
-      duration: 10, 
+      name: "تدريج +دقن", 
+      price: 120, 
+      duration: 20, 
       description: " Beard complete grooming",
       icon: "✨"
     },
