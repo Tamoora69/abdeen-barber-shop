@@ -151,6 +151,26 @@ export default function Booking() {
     setStep(4)
   }
 
+  // STRICT PHONE VALIDATION HANDLER
+  const handlePhoneChange = (e) => {
+    let value = e.target.value;
+    
+    // Remove all non-digit characters
+    value = value.replace(/\D/g, '');
+    
+    // Max 11 digits
+    if (value.length > 11) {
+      value = value.substring(0, 11);
+    }
+    
+    // Auto-add 01 if user starts with 1
+    if (value.length === 1 && value === '1') {
+      value = '01';
+    }
+    
+    setFormData({...formData, phone: value});
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     console.log("🎯 SUBMIT CLICKED - Step 1: Form submission started")
@@ -159,19 +179,27 @@ export default function Booking() {
       toast.error('Please enter your name')
       return
     }
-    if (!formData.phone.trim()) {
-      toast.error('Please enter your phone number')
-      return
-    }
     
-    const cleanedPhone = formData.phone.replace(/\D/g, '')
+    // STRICT PHONE VALIDATION
+    const cleanedPhone = formData.phone.replace(/\D/g, '');
     console.log("📱 Phone validation:", { original: formData.phone, cleaned: cleanedPhone })
     
-    // More flexible phone validation
-    const isValidPhone = cleanedPhone.length === 11 || cleanedPhone.length === 12
-    if (!isValidPhone || !cleanedPhone.startsWith('01')) {
-      toast.error('Please enter a valid Egyptian phone number (11 digits starting with 01)')
-      return
+    // Check length
+    if (cleanedPhone.length !== 11) {
+      toast.error('يجب إدخال 11 رقماً للهاتف');
+      return;
+    }
+    
+    // Check starts with 01
+    if (!cleanedPhone.startsWith('01')) {
+      toast.error('يجب أن يبدأ رقم الهاتف بـ 01');
+      return;
+    }
+    
+    // Check all numbers
+    if (!/^\d+$/.test(cleanedPhone)) {
+      toast.error('يجب إدخال أرقام فقط');
+      return;
     }
     
     if (!formData.service || !formData.date || !formData.time) {
@@ -408,7 +436,7 @@ export default function Booking() {
           </div>
         )}
 
-        {/* Step 4: Customer Details */}
+        {/* Step 4: Customer Details WITH STRICT PHONE VALIDATION */}
         {step === 4 && (
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h2 className="text-2xl font-bold text-center mb-6">معلومات الحجز</h2>
@@ -434,17 +462,62 @@ export default function Booking() {
                   />
                 </div>
                 
+                {/* STRICT PHONE VALIDATION FIELD */}
                 <div>
                   <label className="block text-gray-700 mb-2">رقم الهاتف</label>
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="01XXXXXXXXX"
+                    onChange={handlePhoneChange}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      formData.phone.length === 11 && formData.phone.startsWith('01') 
+                        ? 'border-green-500 bg-green-50' 
+                        : formData.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
+                    placeholder="01123456789"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength="11"
                     required
                   />
-                  <p className="text-sm text-gray-500 mt-1">رقم هاتف مصري (11 رقم يبدأ بـ 01)</p>
+                  <div className="flex justify-between items-center mt-2">
+                    <p className="text-sm text-gray-500">
+                      أدخل 11 رقماً تبدأ بـ 01
+                    </p>
+                    {formData.phone && (
+                      <div className="flex items-center">
+                        <span className={`text-sm font-bold mr-2 ${
+                          formData.phone.length === 11 && formData.phone.startsWith('01') 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {formData.phone.length}/11
+                        </span>
+                        <span className={`text-lg ${
+                          formData.phone.length === 11 && formData.phone.startsWith('01') 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {formData.phone.length === 11 && formData.phone.startsWith('01') 
+                            ? '✅' 
+                            : '❌'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {formData.phone && (
+                    <div className="mt-1">
+                      {formData.phone.length < 11 && (
+                        <p className="text-red-600 text-sm">❌ ناقص {11 - formData.phone.length} أرقام</p>
+                      )}
+                      {formData.phone.length === 11 && !formData.phone.startsWith('01') && (
+                        <p className="text-red-600 text-sm">❌ يجب أن يبدأ بـ 01</p>
+                      )}
+                      {formData.phone.length === 11 && formData.phone.startsWith('01') && (
+                        <p className="text-green-600 text-sm font-bold">✅ رقم صحيح</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -459,7 +532,7 @@ export default function Booking() {
                 
                 <button
                   type="submit"
-                  disabled={loading || !formData.name || !formData.phone}
+                  disabled={loading || !formData.name || !formData.phone || formData.phone.length !== 11 || !formData.phone.startsWith('01')}
                   className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
                 >
                   {loading ? (
