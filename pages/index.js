@@ -43,14 +43,14 @@ export default function Home() {
       name: "دقن", 
       price: 5, 
       duration: 10, 
-      description: "Traditional straight razor shave",
+      description: "Beard complete grooming",
       icon: "✨"
     },
     { 
       name: "تدريج +دقن", 
       price: 120, 
       duration: 20, 
-      description: " Beard complete grooming",
+      description: " Traditional straight razor shave",
       icon: "✨"
     },
     { 
