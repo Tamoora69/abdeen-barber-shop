@@ -41,7 +41,7 @@ export default function Home() {
     },
     { 
       name: "دقن", 
-      price: 5, 
+      price: 50, 
       duration: 10, 
       description: "Beard complete grooming",
       icon: "✨"
@@ -449,4 +449,5 @@ export default function Home() {
       </footer>
     </div>
   )
-}
+}/ /   R e d e p l o y :   1 2 / 1 2 / 2 0 2 5   0 5 : 5 3 : 1 1  
+ 
