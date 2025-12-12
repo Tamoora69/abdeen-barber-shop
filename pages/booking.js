@@ -2,11 +2,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import { toast } from 'react-toastify'
-// Add this after your imports
-console.log('🔧 Booking Page - Supabase Client:', {
-  url: supabase?.supabaseUrl,
-  hasRealtime: !!supabase?.realtime
-})
 
 export default function Booking() {
   const router = useRouter()
@@ -292,7 +287,7 @@ export default function Booking() {
           <div className={`absolute top-6 left-12 h-1 bg-blue-600 -z-10 transition-all duration-500 ${step >= 2 ? 'w-1/3' : step >= 3 ? 'w-2/3' : step >= 4 ? 'w-full' : 'w-0'}`}></div>
         </div>
 
-        {/* Step 1: Service Selection */}
+        {/* Step 1: Service Selection - FIXED FOR EQUAL HEIGHT */}
         {step === 1 && (
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h2 className="text-2xl font-bold text-center mb-6">اختر الخدمة</h2>
@@ -301,16 +296,24 @@ export default function Booking() {
                 <button
                   key={service.id}
                   onClick={() => handleServiceSelect(service.id)}
-                  className="border-2 border-gray-200 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-right"
+                  className="group border-2 border-gray-200 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-right flex flex-col h-full"
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start mb-3">
                     <span className="text-2xl">{service.icon}</span>
                     <div className="text-left">
                       <h3 className="font-bold text-lg">{service.name}</h3>
-                      <p className="text-gray-600 text-sm">{service.description}</p>
-                      <p className="text-green-600 font-bold mt-2">{service.price} EGP</p>
-                      <p className="text-gray-500 text-xs">⏱️ {service.duration} دقيقة</p>
+                      <p className="text-green-600 font-bold mt-1">{service.price} EGP</p>
                     </div>
+                  </div>
+                  
+                  {/* Description with consistent height */}
+                  <div className="flex-grow min-h-[60px]">
+                    <p className="text-gray-600 text-sm">{service.description}</p>
+                  </div>
+                  
+                  {/* Footer - always at bottom */}
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-gray-500 text-xs">⏱️ {service.duration} دقيقة</p>
                   </div>
                 </button>
               ))}
