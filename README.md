@@ -51,6 +51,7 @@ Next.js performance optimizations
 Clean reusable components
 
 🏗️ Project Structure
+
 abdeen-barber-shop/
 │
 ├── pages/
